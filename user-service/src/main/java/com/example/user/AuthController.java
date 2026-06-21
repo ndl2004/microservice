@@ -2,11 +2,15 @@ package com.example.user;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -34,6 +38,7 @@ public class AuthController {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
         User savedUser = userRepository.save(user);
+        log.info("Registered user id={}, email={}", savedUser.getId(), savedUser.getEmail());
 
         return ResponseEntity.ok(savedUser);
     }
@@ -52,6 +57,7 @@ public class AuthController {
         }
 
         String token = jwtUtil.generateToken(user);
+        log.info("User logged in id={}, email={}", user.getId(), user.getEmail());
 
         return ResponseEntity.ok(
                 new AuthResponse(token, user.getId(), user.getEmail(), user.getFullName())

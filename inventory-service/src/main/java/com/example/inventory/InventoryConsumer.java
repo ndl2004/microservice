@@ -6,10 +6,14 @@ import com.example.inventory.dto.StockRequest;
 import com.example.inventory.dto.StockResultEvent;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 public class InventoryConsumer {
+
+    private static final Logger log = LoggerFactory.getLogger(InventoryConsumer.class);
 
     private final InventoryRepository inventoryRepository;
     private final RabbitTemplate rabbitTemplate;
@@ -24,6 +28,9 @@ public class InventoryConsumer {
 
     @RabbitListener(queues = RabbitConfig.STOCK_REQUEST_QUEUE)
     public void handleStockRequest(StockRequest request) {
+        log.info("Received stock request for orderId={} with {} item(s)",
+                request.getOrderId(),
+                request.getItems() == null ? 0 : request.getItems().size());
 
         try {
 
@@ -38,6 +45,11 @@ public class InventoryConsumer {
                                                 + item.getProductId()));
 
                 if (inventory.getQuantity() < item.getQuantity()) {
+                    log.warn("Stock rejected for orderId={}, productId={}, requested={}, available={}",
+                            request.getOrderId(),
+                            item.getProductId(),
+                            item.getQuantity(),
+                            inventory.getQuantity());
 
                     rabbitTemplate.convertAndSend(
                             RabbitConfig.STOCK_RESULT_QUEUE,
@@ -77,8 +89,10 @@ public class InventoryConsumer {
                             "Stock reserved successfully"
                     )
             );
+            log.info("Stock confirmed for orderId={}", request.getOrderId());
 
         } catch (Exception e) {
+            log.error("Stock processing failed for orderId={}", request.getOrderId(), e);
 
             rabbitTemplate.convertAndSend(
                     RabbitConfig.STOCK_RESULT_QUEUE,

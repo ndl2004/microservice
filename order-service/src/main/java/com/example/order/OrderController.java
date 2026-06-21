@@ -7,6 +7,8 @@ import com.example.order.dto.*;
 import com.example.order.event.OrderEventLog;
 import com.example.order.event.OrderEventLogService;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -14,6 +16,8 @@ import java.util.*;
 @RestController
 @RequestMapping("/orders")
 public class OrderController {
+
+    private static final Logger log = LoggerFactory.getLogger(OrderController.class);
 
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
@@ -60,6 +64,9 @@ public class OrderController {
 
     @PostMapping
     public Map<String, Object> createOrder(@RequestBody OrderRequest request) {
+        log.info("Creating order for userId={} with {} item(s)",
+                request.getUserId(),
+                request.getItems() == null ? 0 : request.getItems().size());
 
         UserDTO user = userClient.getUserById(request.getUserId());
 
@@ -135,17 +142,16 @@ public class OrderController {
         );
 
         // Kiểm tra converter đang được sử dụng
-        System.out.println(
-                "Converter = "
-                        + rabbitTemplate.getMessageConverter()
-                        .getClass()
-                        .getName()
-        );
+        log.info("RabbitMQ message converter={}",
+                rabbitTemplate.getMessageConverter().getClass().getName());
 
         rabbitTemplate.convertAndSend(
                 RabbitConfig.STOCK_REQUEST_QUEUE,
                 stockRequest
         );
+        log.info("Sent stock request for orderId={} to queue={}",
+                order.getId(),
+                RabbitConfig.STOCK_REQUEST_QUEUE);
 
         Map<String, Object> response = new HashMap<>();
         response.put(
@@ -181,6 +187,14 @@ public class OrderController {
         order.setStatus("CANCELLED");
         Order savedOrder = orderRepository.save(order);
         savedOrder.setItems(orderItemRepository.findByOrderId(savedOrder.getId()));
+        orderEventLogService.save(
+                savedOrder.getId(),
+                savedOrder.getUserId(),
+                "ORDER_CANCELLED",
+                "Order was cancelled.",
+                Map.of("status", savedOrder.getStatus())
+        );
+        log.info("Cancelled order id={}", savedOrder.getId());
         return savedOrder;
     }
 

@@ -106,8 +106,17 @@ const Products = () => {
     }
   };
 
-  const handleDelete = () => {
-    toast.info('Backend Spring hiện chưa có API xóa sản phẩm.');
+  const handleDelete = async (id) => {
+    if (!window.confirm('Bạn chắc chắn muốn xóa sản phẩm này?')) return;
+
+    try {
+      await api.delete(`/products/${id}`);
+      toast.success('Đã xóa sản phẩm thành công.');
+      loadData();
+    } catch (err) {
+      console.error('Product admin delete error:', err);
+      toast.error(err.response?.data?.message || 'Không thể xóa sản phẩm.');
+    }
   };
 
   const closeModal = () => {
@@ -187,7 +196,7 @@ const Products = () => {
                   <span style={statusBadge}>{product.status || 'ACTIVE'}</span>
                 </td>
                 <td style={td}>
-                  <button type="button" onClick={handleDelete} style={btnActionDel}>
+                  <button type="button" onClick={() => handleDelete(product.id)} style={btnActionDel}>
                     Xóa
                   </button>
                 </td>

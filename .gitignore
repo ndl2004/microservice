@@ -1,0 +1,15 @@
+target/
+node_modules/
+dist/
+.npm-cache/
+
+.idea/
+.vscode/
+*.class
+*.log
+*.iml
+
+.mvn/wrapper/maven-wrapper.jar
+
+.DS_Store
+Thumbs.db
