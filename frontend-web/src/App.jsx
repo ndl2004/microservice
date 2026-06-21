@@ -1,12 +1,10 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
-// Components
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
 
-// Pages (User)
 import Home from './pages/Home';
 import ProductDetail from './pages/ProductDetail';
 import Login from './pages/Login';
@@ -20,20 +18,18 @@ import UserDashboard from './pages/Dashboard';
 import NewsDetail from './pages/NewsDetail';
 import Contact from './pages/Contact';
 import PaymentReturn from './VNPAY/PaymentReturn';
-// Admin
+
 import AdminLayout from './admin/AdminLayout';
 import AdminDashboard from './admin/Dashboard';
 import Orders from './admin/Orders';
 import Products from './admin/Products';
 import Users from './admin/Users';
-// Toast & Styles
+
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-// Context
 import { CartProvider } from './context/CartContext';
 
-/* ================= 1. PROTECTED ROUTE (BẢO VỆ ĐƯỜNG DẪN) ================= */
 const ProtectedRoute = ({ children, role }) => {
   const token = localStorage.getItem('token');
   const userStr = localStorage.getItem('user');
@@ -42,9 +38,9 @@ const ProtectedRoute = ({ children, role }) => {
 
   try {
     const user = JSON.parse(userStr);
-    
-    // Kiểm tra quyền nếu có yêu cầu role
-    if (role === 'admin' && user.role !== 'admin') {
+    const storedRole = localStorage.getItem('user_role');
+
+    if (role === 'admin' && user.role !== 'admin' && storedRole !== 'admin') {
       return <Navigate to="/" />;
     }
   } catch (error) {
@@ -54,15 +50,14 @@ const ProtectedRoute = ({ children, role }) => {
   return children;
 };
 
-/* ================= 2. USER LAYOUT WRAPPER (CÓ HEADER/FOOTER) ================= */
 const UserPage = ({ children }) => {
   return (
-    <div style={{ 
-      width: '100%', 
-      minHeight: '100vh', 
-      display: 'flex', 
-      flexDirection: 'column', 
-      backgroundColor: '#fffcf2' 
+    <div style={{
+      width: '100%',
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      backgroundColor: '#fffcf2'
     }}>
       <Header />
       <main style={{ flex: 1 }}>{children}</main>
@@ -71,15 +66,12 @@ const UserPage = ({ children }) => {
   );
 };
 
-/* ================= 3. MAIN APP COMPONENT ================= */
 function App() {
   return (
     <Router>
       <ScrollToTop />
       <CartProvider>
         <Routes>
-          
-          {/* --- KHU VỰC ADMIN (ƯU TIÊN LÊN ĐẦU) --- */}
           <Route
             path="/admin"
             element={
@@ -88,17 +80,13 @@ function App() {
               </ProtectedRoute>
             }
           >
-            {/* Các Route con nằm bên trong thẻ đóng của Route cha */}
-            <Route index element={<AdminDashboard />} /> 
-            <Route path="dashboard" element={<AdminDashboard />} /> 
+            <Route index element={<AdminDashboard />} />
+            <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="orders" element={<Orders />} />
             <Route path="products" element={<Products />} />
             <Route path="users" element={<Users />} />
+          </Route>
 
-          </Route> 
-          {/* Thẻ đóng </Route> nằm ở cuối cùng sau khi đã khai báo hết các con */} 
-
-          {/* --- KHU VỰC USER (CÓ HEADER & FOOTER) --- */}
           <Route path="/" element={<UserPage><Home /></UserPage>} />
           <Route path="/product/:id" element={<UserPage><ProductDetail /></UserPage>} />
           <Route path="/san-pham" element={<UserPage><AllProducts /></UserPage>} />
@@ -106,19 +94,15 @@ function App() {
           <Route path="/tin-tuc" element={<UserPage><NewsDetail /></UserPage>} />
           <Route path="/lien-he" element={<UserPage><Contact /></UserPage>} />
           <Route path="/payment-return" element={<PaymentReturn />} />
-          {/* User Protected Routes */}
+
           <Route path="/profile" element={<ProtectedRoute><UserPage><Profile /></UserPage></ProtectedRoute>} />
           <Route path="/checkout" element={<ProtectedRoute><UserPage><Checkout /></UserPage></ProtectedRoute>} />
           <Route path="/order-history" element={<ProtectedRoute><UserPage><OrderHistory /></UserPage></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><UserPage><UserDashboard /></UserPage></ProtectedRoute>} />
 
-          {/* Auth Routes (Không có Header/Footer) */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-
-          {/* 404 Redirect */}
           <Route path="*" element={<Navigate to="/" />} />
-
         </Routes>
 
         <ToastContainer position="top-right" autoClose={3000} />
