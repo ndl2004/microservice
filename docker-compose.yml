@@ -1,0 +1,119 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq-microservice
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  redis:
+    image: redis:latest
+    container_name: redis-microservice
+    restart: always
+    ports:
+      - "6379:6379"
+
+  mongodb:
+    image: mongo:7
+    container_name: mongodb-microservice
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: phpmyadmin-microservice
+    restart: always
+    ports:
+      - "8089:80"
+    environment:
+      - PMA_HOST=host.docker.internal
+      - PMA_PORT=3307
+      - PMA_USER=root
+      - PMA_PASSWORD=root
+
+  eureka-server:
+    build:
+      context: .
+      dockerfile: eureka-server/Dockerfile
+    container_name: eureka-server
+    restart: always
+    ports:
+      - "8761:8761"
+
+  product-service:
+    build:
+      context: .
+      dockerfile: product-service/Dockerfile
+    container_name: product-service
+    restart: always
+    ports:
+      - "8081:8081"
+    depends_on:
+      - eureka-server
+      - redis
+
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    container_name: user-service
+    restart: always
+    ports:
+      - "8082:8082"
+    depends_on:
+      - eureka-server
+
+  order-service:
+    build:
+      context: .
+      dockerfile: order-service/Dockerfile
+    container_name: order-service
+    restart: always
+    ports:
+      - "8083:8083"
+    depends_on:
+      - eureka-server
+      - rabbitmq
+      - mongodb
+      - product-service
+      - user-service
+    environment:
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/order_event_db
+
+  inventory-service:
+    build:
+      context: .
+      dockerfile: inventory-service/Dockerfile
+    container_name: inventory-service
+    restart: always
+    ports:
+      - "8084:8084"
+    depends_on:
+      - eureka-server
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://host.docker.internal:3307/inventory_db
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    container_name: api-gateway
+    restart: always
+    ports:
+      - "8088:8080"
+    depends_on:
+      - eureka-server
+      - product-service
+      - user-service
+      - order-service
+      - inventory-service
+
+volumes:
+  mongodb_data:
