@@ -21,6 +21,9 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Column(nullable = false)
+    private String role = "USER";
+
     public User() {
     }
 
@@ -57,6 +60,10 @@ public class User {
         return password;
     }
 
+    public String getRole() {
+        return role;
+    }
+
     public void setFullName(String fullName) {
         this.fullName = fullName;
     }
@@ -75,5 +82,9 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public void setRole(String role) {
+        this.role = role == null || role.isBlank() ? "USER" : role.toUpperCase();
     }
 }

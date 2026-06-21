@@ -36,6 +36,7 @@ public class AuthController {
         user.setPhone(request.getPhone());
         user.setAddress(request.getAddress());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setRole("USER");
 
         User savedUser = userRepository.save(user);
         log.info("Registered user id={}, email={}", savedUser.getId(), savedUser.getEmail());
@@ -60,7 +61,7 @@ public class AuthController {
         log.info("User logged in id={}, email={}", user.getId(), user.getEmail());
 
         return ResponseEntity.ok(
-                new AuthResponse(token, user.getId(), user.getEmail(), user.getFullName())
+                new AuthResponse(token, user.getId(), user.getEmail(), user.getFullName(), user.getRole())
         );
     }
 }

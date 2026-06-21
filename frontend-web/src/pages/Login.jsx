@@ -14,12 +14,12 @@ const Login = () => {
 
         try {
             const response = await api.post('/auth/login', { email, password });
-            const isAdmin = email.trim().toLowerCase().includes('admin');
+            const role = (response.data.role || 'USER').toUpperCase();
             const user = {
                 id: response.data.userId,
                 name: response.data.fullName,
                 email: response.data.email,
-                role: isAdmin ? 'admin' : 'user'
+                role
             };
 
             localStorage.setItem('token', response.data.token);
@@ -31,7 +31,7 @@ const Login = () => {
 
             window.dispatchEvent(new Event('authChange'));
             toast.success(`Chào mừng ${user.name} đã quay trở lại!`);
-            navigate(isAdmin ? '/admin' : '/');
+            navigate(role === 'ADMIN' ? '/admin' : '/');
         } catch (err) {
             toast.error(err.response?.data?.message || err.response?.data || 'Đăng nhập thất bại!');
         }

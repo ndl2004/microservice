@@ -40,7 +40,7 @@ const ProtectedRoute = ({ children, role }) => {
     const user = JSON.parse(userStr);
     const storedRole = localStorage.getItem('user_role');
 
-    if (role === 'admin' && user.role !== 'admin' && storedRole !== 'admin') {
+    if (role === 'admin' && user.role !== 'ADMIN' && storedRole !== 'ADMIN') {
       return <Navigate to="/" />;
     }
   } catch (error) {
