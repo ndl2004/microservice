@@ -6,6 +6,12 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   redis:
     image: redis:latest
@@ -13,6 +19,12 @@ services:
     restart: always
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   mongodb:
     image: mongo:7
@@ -22,6 +34,12 @@ services:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
@@ -43,6 +61,12 @@ services:
     restart: always
     ports:
       - "8761:8761"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/8761'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   product-service:
     build:
@@ -53,8 +77,16 @@ services:
     ports:
       - "8081:8081"
     depends_on:
-      - eureka-server
-      - redis
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/8081'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
 
   user-service:
     build:
@@ -65,7 +97,14 @@ services:
     ports:
       - "8082:8082"
     depends_on:
-      - eureka-server
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/8082'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
 
   order-service:
     build:
@@ -76,13 +115,24 @@ services:
     ports:
       - "8083:8083"
     depends_on:
-      - eureka-server
-      - rabbitmq
-      - mongodb
-      - product-service
-      - user-service
+      eureka-server:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
     environment:
       - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/order_event_db
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/8083'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
 
   inventory-service:
     build:
@@ -93,12 +143,19 @@ services:
     ports:
       - "8084:8084"
     depends_on:
-      - eureka-server
+      eureka-server:
+        condition: service_healthy
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://host.docker.internal:3307/inventory_db
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=root
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/8084'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
 
   api-gateway:
     build:
@@ -109,12 +166,24 @@ services:
     ports:
       - "8088:8080"
     depends_on:
-      - eureka-server
-      - redis
-      - product-service
-      - user-service
-      - order-service
-      - inventory-service
+      eureka-server:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      order-service:
+        condition: service_healthy
+      inventory-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/8080'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
 
 volumes:
   mongodb_data:
