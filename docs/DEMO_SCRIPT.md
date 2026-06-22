@@ -68,6 +68,7 @@ User thường: đăng ký mới trên giao diện.
 9. Vào `/admin/news`.
 10. Thêm bài viết, đổi trạng thái đăng/ẩn.
 11. Mở `/tin-tuc` để thấy bài viết hiển thị ngoài frontend.
+12. Giải thích bài viết được lưu qua News Service riêng.
 
 ## Demo Redis Cache
 

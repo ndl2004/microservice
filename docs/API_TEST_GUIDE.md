@@ -93,6 +93,28 @@ Event log đơn hàng:
 curl.exe http://localhost:8088/api/orders/35/events
 ```
 
+## News
+
+Danh sách bài viết:
+
+```powershell
+curl.exe http://localhost:8088/api/news
+```
+
+Danh sách bài viết đã đăng:
+
+```powershell
+curl.exe "http://localhost:8088/api/news?status=PUBLISHED"
+```
+
+Tạo bài viết:
+
+```powershell
+curl.exe -X POST http://localhost:8088/api/news `
+  -H "Content-Type: application/json" `
+  -d "{\"title\":\"Tin demo\",\"category\":\"company_news\",\"summary\":\"Mo ta ngan\",\"content\":\"Noi dung bai viet demo\",\"author\":\"Admin\",\"status\":\"PUBLISHED\",\"date\":\"2026-06-22\"}"
+```
+
 ## Docker Và Log
 
 Trạng thái container:

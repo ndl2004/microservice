@@ -3,7 +3,7 @@
 | STT | Yêu cầu | Trạng thái | Minh chứng trong dự án |
 |---:|---|---|---|
 | 1 | Spring Boot | Đã có | `user-service`, `product-service`, `order-service`, `inventory-service`, `api-gateway`, `eureka-server` |
-| 2 | Microservices | Đã có | Các service tách riêng theo nghiệp vụ |
+| 2 | Microservices | Đã có | Các service tách riêng theo nghiệp vụ, gồm cả News Service |
 | 3 | Frontend | Đã có | `frontend-web` dùng React Vite |
 | 4 | SQL Database | Đã có | MySQL lưu user, product, order, inventory |
 | 5 | NoSQL | Đã có | Redis cache, MongoDB event log |
@@ -32,4 +32,5 @@ Dự án đã đáp ứng phần lớn yêu cầu trọng tâm. Phần Cloud & C
 - RabbitMQ thể hiện giao tiếp bất đồng bộ.
 - Redis giải quyết bài toán cache dữ liệu đọc nhiều.
 - MongoDB phù hợp lưu event log dạng document.
+- News Service là ví dụ mở rộng thêm service nghiệp vụ mới.
 - Docker Compose giúp triển khai toàn hệ thống.

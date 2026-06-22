@@ -1,37 +1,57 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { getCategoryLabel, getNewsPosts, newsCategories } from '../data/newsStore';
+import api from '../api/axios';
+import { getCategoryLabel, newsCategories } from '../data/newsStore';
 
 const News = () => {
   const { id } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeFaq, setActiveFaq] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const category = searchParams.get('category') || '';
 
-  const posts = useMemo(() => {
-    return getNewsPosts()
-      .filter((post) => post.status === 'PUBLISHED')
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
+  useEffect(() => {
+    loadPosts();
   }, []);
+
+  const loadPosts = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/news?status=PUBLISHED');
+      setPosts(Array.isArray(response.data) ? response.data : []);
+    } catch (err) {
+      console.error('News page load error:', err);
+      setPosts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const selectedPost = id ? posts.find((post) => String(post.id) === String(id)) : null;
 
-  const filteredPosts = posts.filter((post) => {
-    const keyword = searchTerm.trim().toLowerCase();
-    const text = `${post.title} ${post.summary} ${post.content}`.toLowerCase();
-    const matchesSearch = text.includes(keyword);
-    const matchesCategory = !category || post.category === category;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredPosts = useMemo(() => {
+    return posts.filter((post) => {
+      const keyword = searchTerm.trim().toLowerCase();
+      const text = `${post.title || ''} ${post.summary || ''} ${post.content || ''}`.toLowerCase();
+      const matchesSearch = text.includes(keyword);
+      const matchesCategory = !category || post.category === category;
+      return matchesSearch && matchesCategory;
+    });
+  }, [posts, searchTerm, category]);
+
+  if (loading) {
+    return <div style={pageStyle}><div style={containerStyle}>Dang tai tin tuc...</div></div>;
+  }
 
   if (id) {
     if (!selectedPost) {
       return (
         <div style={pageStyle}>
           <div style={containerStyle}>
-            <h1 style={titleStyle}>Không tìm thấy bài viết</h1>
-            <Link to="/tin-tuc" style={readMoreStyle}>Quay lại tin tức</Link>
+            <h1 style={titleStyle}>Khong tim thay bai viet</h1>
+            <Link to="/tin-tuc" style={readMoreStyle}>Quay lai tin tuc</Link>
           </div>
         </div>
       );
@@ -43,21 +63,21 @@ const News = () => {
           {selectedPost.image ? (
             <img src={selectedPost.image} alt={selectedPost.title} style={heroImageStyle} />
           ) : (
-            <div style={detailImagePlaceholder}>{selectedPost.title.charAt(0)}</div>
+            <div style={detailImagePlaceholder}>{selectedPost.title?.charAt(0)}</div>
           )}
           <div style={detailMetaRow}>
             <span>{getCategoryLabel(selectedPost.category)}</span>
-            <span>{new Date(selectedPost.date).toLocaleDateString('vi-VN')}</span>
+            <span>{selectedPost.date ? new Date(selectedPost.date).toLocaleDateString('vi-VN') : ''}</span>
             <span>{selectedPost.author}</span>
           </div>
           <h1 style={detailTitleStyle}>{selectedPost.title}</h1>
           <p style={detailSummaryStyle}>{selectedPost.summary}</p>
           <div style={contentStyle}>
-            {selectedPost.content.split('\n').map((paragraph) => (
-              <p key={paragraph}>{paragraph}</p>
+            {(selectedPost.content || '').split('\n').map((paragraph, index) => (
+              <p key={`${paragraph}-${index}`}>{paragraph}</p>
             ))}
           </div>
-          <Link to="/tin-tuc" style={readMoreStyle}>Quay lại danh sách tin</Link>
+          <Link to="/tin-tuc" style={readMoreStyle}>Quay lai danh sach tin</Link>
         </article>
       </div>
     );
@@ -67,15 +87,15 @@ const News = () => {
     <div style={pageStyle}>
       <div style={containerStyle}>
         <div style={headerStyle}>
-          <h1 style={titleStyle}>Tin tức Luna Cosmetics</h1>
-          <p style={subtitleStyle}>Cập nhật mẹo làm đẹp, xu hướng và thông báo mới từ cửa hàng.</p>
+          <h1 style={titleStyle}>Tin tuc Luna Cosmetics</h1>
+          <p style={subtitleStyle}>Cap nhat meo lam dep, xu huong va thong bao moi tu cua hang.</p>
         </div>
 
         <div style={toolbarStyle}>
           <input
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Tìm bài viết..."
+            placeholder="Tim bai viet..."
             style={searchBox}
           />
           <div style={categoryBarStyle}>
@@ -101,31 +121,31 @@ const News = () => {
               {article.image ? (
                 <img src={article.image} alt={article.title} style={cardImageStyle} />
               ) : (
-                <div style={imagePlaceholderStyle}>{article.title.charAt(0)}</div>
+                <div style={imagePlaceholderStyle}>{article.title?.charAt(0)}</div>
               )}
               <div style={cardBodyStyle}>
                 <div style={cardMetaStyle}>
                   <span>{getCategoryLabel(article.category)}</span>
-                  <span>{new Date(article.date).toLocaleDateString('vi-VN')}</span>
+                  <span>{article.date ? new Date(article.date).toLocaleDateString('vi-VN') : ''}</span>
                 </div>
                 <h2 style={cardTitleStyle}>{article.title}</h2>
                 <p style={summaryStyle}>{article.summary}</p>
-                <Link to={`/tin-tuc/${article.id}`} style={readMoreStyle}>Đọc tiếp</Link>
+                <Link to={`/tin-tuc/${article.id}`} style={readMoreStyle}>Doc tiep</Link>
               </div>
             </article>
           ))}
         </div>
 
         {filteredPosts.length === 0 && (
-          <div style={emptyStyle}>Chưa có bài viết phù hợp.</div>
+          <div style={emptyStyle}>Chua co bai viet phu hop.</div>
         )}
 
         <section style={faqSectionStyle}>
-          <h2 style={{ marginBottom: '20px' }}>Câu hỏi thường gặp</h2>
+          <h2 style={{ marginBottom: '20px' }}>Cau hoi thuong gap</h2>
           {[
-            ['Tin tức có được quản lý từ admin không?', 'Có. Admin có thể thêm, sửa, ẩn/đăng và xóa bài viết tại mục Tin tức.'],
-            ['Bài viết nháp có hiện ngoài frontend không?', 'Không. Chỉ bài viết có trạng thái PUBLISHED mới hiển thị cho khách hàng.'],
-            ['Tin tức có ảnh không?', 'Có. Admin có thể upload ảnh cho từng bài viết.']
+            ['Tin tuc co duoc quan ly tu admin khong?', 'Co. Admin them, sua, an/dang va xoa bai viet tai muc Tin tuc.'],
+            ['Bai viet nhap co hien ngoai frontend khong?', 'Khong. Chi bai viet co trang thai PUBLISHED moi hien thi cho khach hang.'],
+            ['Tin tuc hien lay du lieu tu dau?', 'Du lieu duoc doc tu News Service thong qua API Gateway.']
           ].map(([question, answer], index) => (
             <div key={question} style={faqItemStyle} onClick={() => setActiveFaq(activeFaq === index ? null : index)}>
               <div style={faqQuestionStyle}>

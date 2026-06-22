@@ -39,6 +39,7 @@ Giải thích:
 - Product Service quản lý sản phẩm và cache.
 - Order Service xử lý đơn hàng.
 - Inventory Service xử lý tồn kho.
+- News Service quản lý bài viết tin tức.
 
 ## 4. Thiết Kế Cơ Sở Dữ Liệu
 
@@ -127,13 +128,11 @@ Kịch bản demo:
 
 ## 12. Hạn Chế
 
-- News hiện được quản lý ở frontend/localStorage, chưa tách thành news-service riêng.
 - Chưa triển khai cloud.
 - Chưa có monitoring chuyên sâu như Prometheus/Grafana.
 
 ## 13. Hướng Phát Triển
 
-- Tách News Service riêng.
 - Thêm Payment Service.
 - Thêm Notification Service gửi email.
 - Thêm Monitoring bằng Prometheus/Grafana.

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
-import { getCategoryLabel, getNewsPosts, newsCategories, saveNewsPosts } from '../data/newsStore';
+import api from '../api/axios';
+import { getCategoryLabel, newsCategories } from '../data/newsStore';
 
 const emptyForm = {
   title: '',
@@ -17,6 +18,7 @@ const itemsPerPage = 6;
 
 const News = () => {
   const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -25,18 +27,26 @@ const News = () => {
   const [formData, setFormData] = useState(emptyForm);
 
   useEffect(() => {
-    setPosts(getNewsPosts());
+    loadPosts();
   }, []);
 
-  const persistPosts = (nextPosts) => {
-    setPosts(nextPosts);
-    saveNewsPosts(nextPosts);
+  const loadPosts = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/news');
+      setPosts(Array.isArray(response.data) ? response.data : []);
+    } catch (err) {
+      console.error('News admin load error:', err);
+      toast.error('Khong the tai danh sach tin tuc.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filteredPosts = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
     return posts.filter((post) => {
-      const text = `${post.title} ${post.summary} ${post.author}`.toLowerCase();
+      const text = `${post.title || ''} ${post.summary || ''} ${post.author || ''}`.toLowerCase();
       const matchesSearch = text.includes(keyword);
       const matchesCategory = !categoryFilter || post.category === categoryFilter;
       return matchesSearch && matchesCategory;
@@ -55,7 +65,16 @@ const News = () => {
 
   const openEditModal = (post) => {
     setEditingPost(post);
-    setFormData(post);
+    setFormData({
+      title: post.title || '',
+      category: post.category || 'beauty_tips',
+      summary: post.summary || '',
+      content: post.content || '',
+      author: post.author || 'Admin',
+      status: post.status || 'PUBLISHED',
+      date: post.date || new Date().toISOString().slice(0, 10),
+      image: post.image || '',
+    });
     setShowModal(true);
   };
 
@@ -68,57 +87,86 @@ const News = () => {
   const handleImageUpload = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
     if (!file.type.startsWith('image/')) {
-      toast.warn('Vui lòng chọn file ảnh.');
+      toast.warn('Vui long chon file anh.');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.warn('Anh nen nho hon 2MB.');
       return;
     }
 
     const reader = new FileReader();
     reader.onload = () => setFormData((prev) => ({ ...prev, image: reader.result }));
-    reader.onerror = () => toast.error('Không thể đọc ảnh.');
+    reader.onerror = () => toast.error('Khong the doc anh.');
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     const payload = {
       ...formData,
       title: formData.title.trim(),
       summary: formData.summary.trim(),
       content: formData.content.trim(),
+      author: formData.author.trim() || 'Admin',
     };
 
-    if (editingPost) {
-      persistPosts(posts.map((post) => (post.id === editingPost.id ? { ...payload, id: editingPost.id } : post)));
-      toast.success('Đã cập nhật bài viết.');
-    } else {
-      const nextId = Math.max(0, ...posts.map((post) => Number(post.id))) + 1;
-      persistPosts([{ ...payload, id: nextId }, ...posts]);
-      toast.success('Đã thêm bài viết.');
+    try {
+      if (editingPost) {
+        await api.put(`/news/${editingPost.id}`, payload);
+        toast.success('Da cap nhat bai viet.');
+      } else {
+        await api.post('/news', payload);
+        toast.success('Da them bai viet.');
+      }
+
+      closeModal();
+      loadPosts();
+    } catch (err) {
+      console.error('News admin save error:', err);
+      toast.error(err.response?.data?.message || 'Khong the luu bai viet.');
     }
-
-    closeModal();
   };
 
-  const deletePost = (id) => {
-    if (!window.confirm('Bạn muốn xóa bài viết này?')) return;
-    persistPosts(posts.filter((post) => post.id !== id));
-    toast.success('Đã xóa bài viết.');
+  const deletePost = async (id) => {
+    if (!window.confirm('Ban muon xoa bai viet nay?')) return;
+
+    try {
+      await api.delete(`/news/${id}`);
+      toast.success('Da xoa bai viet.');
+      loadPosts();
+    } catch (err) {
+      console.error('News admin delete error:', err);
+      toast.error(err.response?.data?.message || 'Khong the xoa bai viet.');
+    }
   };
 
-  const toggleStatus = (post) => {
+  const toggleStatus = async (post) => {
     const nextStatus = post.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED';
-    persistPosts(posts.map((item) => (item.id === post.id ? { ...item, status: nextStatus } : item)));
+    try {
+      await api.put(`/news/${post.id}`, { ...post, status: nextStatus });
+      loadPosts();
+    } catch (err) {
+      console.error('News admin status error:', err);
+      toast.error('Khong the cap nhat trang thai.');
+    }
   };
+
+  if (loading) {
+    return <div style={loaderStyle}>Dang tai tin tuc...</div>;
+  }
 
   return (
     <div style={pageStyle}>
       <div style={headerRow}>
         <div>
-          <h2 style={titleStyle}>Quản lý tin tức</h2>
-          <p style={subtitleStyle}>Bài viết ở đây sẽ hiển thị trên trang Tin tức ngoài frontend</p>
+          <h2 style={titleStyle}>Quan ly tin tuc</h2>
+          <p style={subtitleStyle}>Du lieu duoc luu trong News Service va hien thi tai trang Tin tuc frontend.</p>
         </div>
-        <button type="button" onClick={openCreateModal} style={btnAdd}>Thêm bài viết</button>
+        <button type="button" onClick={openCreateModal} style={btnAdd}>Them bai viet</button>
       </div>
 
       <div style={filterBar}>
@@ -128,7 +176,7 @@ const News = () => {
             setSearchTerm(e.target.value);
             setCurrentPage(1);
           }}
-          placeholder="Tìm tiêu đề, mô tả, tác giả..."
+          placeholder="Tim tieu de, mo ta, tac gia..."
           style={searchBox}
         />
         <select
@@ -150,12 +198,12 @@ const News = () => {
         <table style={tableStyle}>
           <thead>
             <tr>
-              <th style={th}>Bài viết</th>
-              <th style={th}>Danh mục</th>
-              <th style={th}>Ngày</th>
-              <th style={th}>Tác giả</th>
-              <th style={th}>Trạng thái</th>
-              <th style={th}>Thao tác</th>
+              <th style={th}>Bai viet</th>
+              <th style={th}>Danh muc</th>
+              <th style={th}>Ngay</th>
+              <th style={th}>Tac gia</th>
+              <th style={th}>Trang thai</th>
+              <th style={th}>Thao tac</th>
             </tr>
           </thead>
           <tbody>
@@ -163,7 +211,9 @@ const News = () => {
               <tr key={post.id}>
                 <td style={td}>
                   <div style={postCell}>
-                    <div style={postThumb}>{post.image ? <img src={post.image} alt={post.title} style={postImage} /> : post.title.charAt(0)}</div>
+                    <div style={postThumb}>
+                      {post.image ? <img src={post.image} alt={post.title} style={postImage} /> : post.title?.charAt(0)}
+                    </div>
                     <div>
                       <strong>{post.title}</strong>
                       <div style={summaryText}>{post.summary}</div>
@@ -171,25 +221,30 @@ const News = () => {
                   </div>
                 </td>
                 <td style={td}>{getCategoryLabel(post.category)}</td>
-                <td style={td}>{new Date(post.date).toLocaleDateString('vi-VN')}</td>
+                <td style={td}>{post.date ? new Date(post.date).toLocaleDateString('vi-VN') : ''}</td>
                 <td style={td}>{post.author}</td>
                 <td style={td}><span style={post.status === 'PUBLISHED' ? badgePublished : badgeDraft}>{post.status}</span></td>
                 <td style={td}>
                   <div style={actionGroup}>
-                    <button type="button" onClick={() => toggleStatus(post)} style={btnStatus}>{post.status === 'PUBLISHED' ? 'Ẩn' : 'Đăng'}</button>
-                    <button type="button" onClick={() => openEditModal(post)} style={btnEdit}>Sửa</button>
-                    <button type="button" onClick={() => deletePost(post.id)} style={btnDelete}>Xóa</button>
+                    <button type="button" onClick={() => toggleStatus(post)} style={btnStatus}>{post.status === 'PUBLISHED' ? 'An' : 'Dang'}</button>
+                    <button type="button" onClick={() => openEditModal(post)} style={btnEdit}>Sua</button>
+                    <button type="button" onClick={() => deletePost(post.id)} style={btnDelete}>Xoa</button>
                   </div>
                 </td>
               </tr>
             ))}
+            {currentPosts.length === 0 && (
+              <tr>
+                <td colSpan="6" style={{ ...td, textAlign: 'center', color: '#64748b' }}>Khong co bai viet phu hop.</td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
 
       {filteredPosts.length > itemsPerPage && (
         <div style={paginationWrapper}>
-          <button type="button" disabled={safeCurrentPage === 1} onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} style={safeCurrentPage === 1 ? navBtnDisabled : navBtn}>Trước</button>
+          <button type="button" disabled={safeCurrentPage === 1} onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} style={safeCurrentPage === 1 ? navBtnDisabled : navBtn}>Truoc</button>
           {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
             <button key={page} type="button" onClick={() => setCurrentPage(page)} style={page === safeCurrentPage ? pageBtnActive : pageBtn}>{page}</button>
           ))}
@@ -201,11 +256,11 @@ const News = () => {
         <div style={modalOverlay}>
           <div style={modalContent}>
             <div style={modalHeader}>
-              <h3 style={{ margin: 0 }}>{editingPost ? 'Sửa bài viết' : 'Thêm bài viết'}</h3>
-              <button type="button" onClick={closeModal} style={btnClose}>Đóng</button>
+              <h3 style={{ margin: 0 }}>{editingPost ? 'Sua bai viet' : 'Them bai viet'}</h3>
+              <button type="button" onClick={closeModal} style={btnClose}>Dong</button>
             </div>
             <form onSubmit={handleSubmit} style={formGrid}>
-              <input required value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="Tiêu đề" style={inputStyle} />
+              <input required value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} placeholder="Tieu de" style={inputStyle} />
               <div style={twoColumnGrid}>
                 <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} style={inputStyle}>
                   {newsCategories.filter((item) => item.value).map((category) => (
@@ -215,24 +270,24 @@ const News = () => {
                 <input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} style={inputStyle} />
               </div>
               <div style={twoColumnGrid}>
-                <input value={formData.author} onChange={(e) => setFormData({ ...formData, author: e.target.value })} placeholder="Tác giả" style={inputStyle} />
+                <input value={formData.author} onChange={(e) => setFormData({ ...formData, author: e.target.value })} placeholder="Tac gia" style={inputStyle} />
                 <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} style={inputStyle}>
                   <option value="PUBLISHED">PUBLISHED</option>
                   <option value="DRAFT">DRAFT</option>
                 </select>
               </div>
-              <textarea required value={formData.summary} onChange={(e) => setFormData({ ...formData, summary: e.target.value })} placeholder="Mô tả ngắn" rows="3" style={inputStyle} />
-              <textarea required value={formData.content} onChange={(e) => setFormData({ ...formData, content: e.target.value })} placeholder="Nội dung bài viết" rows="8" style={inputStyle} />
+              <textarea required value={formData.summary} onChange={(e) => setFormData({ ...formData, summary: e.target.value })} placeholder="Mo ta ngan" rows="3" style={inputStyle} />
+              <textarea required value={formData.content} onChange={(e) => setFormData({ ...formData, content: e.target.value })} placeholder="Noi dung bai viet" rows="8" style={inputStyle} />
               <div style={uploadBox}>
                 {formData.image && <img src={formData.image} alt="Preview" style={previewImage} />}
                 <label style={fileLabel}>
-                  Chọn ảnh bài viết
+                  Chon anh bai viet
                   <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
                 </label>
               </div>
               <div style={modalActions}>
-                <button type="submit" style={btnSave}>{editingPost ? 'Cập nhật' : 'Lưu'}</button>
-                <button type="button" onClick={closeModal} style={btnCancel}>Hủy</button>
+                <button type="submit" style={btnSave}>{editingPost ? 'Cap nhat' : 'Luu'}</button>
+                <button type="button" onClick={closeModal} style={btnCancel}>Huy</button>
               </div>
             </form>
           </div>
@@ -283,5 +338,6 @@ const fileLabel = { display: 'inline-block', padding: '10px 14px', background: '
 const modalActions = { display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '8px' };
 const btnSave = { padding: '10px 16px', border: 'none', borderRadius: '8px', background: '#10b981', color: '#fff', fontWeight: 800, cursor: 'pointer' };
 const btnCancel = { padding: '10px 16px', border: 'none', borderRadius: '8px', background: '#94a3b8', color: '#fff', fontWeight: 800, cursor: 'pointer' };
+const loaderStyle = { display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh', color: '#64748b', fontWeight: 700 };
 
 export default News;

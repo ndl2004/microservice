@@ -16,6 +16,7 @@ Hệ thống có đầy đủ các thành phần chính: Frontend, API Gateway, 
 - MongoDB lưu lịch sử sự kiện đơn hàng.
 - Redis cache danh sách sản phẩm.
 - Admin quản lý sản phẩm, tồn kho, đơn hàng, người dùng và tin tức.
+- Tin tức được tách thành News Service riêng và route qua API Gateway.
 - Docker Compose triển khai toàn bộ hệ thống.
 
 ## Công Nghệ
@@ -53,12 +54,14 @@ flowchart LR
     Gateway --> Product["Product Service<br/>8081"]
     Gateway --> Order["Order Service<br/>8083"]
     Gateway --> Inventory["Inventory Service<br/>8084"]
+    Gateway --> News["News Service<br/>8085"]
 
     Eureka["Eureka Server<br/>8761"] -. discovery .- Gateway
     Eureka -. discovery .- User
     Eureka -. discovery .- Product
     Eureka -. discovery .- Order
     Eureka -. discovery .- Inventory
+    Eureka -. discovery .- News
 
     Product --> Redis["Redis Cache"]
     Order --> Mongo["MongoDB<br/>Order Event Log"]
@@ -69,6 +72,7 @@ flowchart LR
     Product --> MySQL
     Order --> MySQL
     Inventory --> MySQL
+    News --> MySQL
 ```
 
 ## Luồng Demo Chính
@@ -98,6 +102,7 @@ microservice/
 ├── product-service/
 ├── order-service/
 ├── inventory-service/
+├── news-service/
 ├── frontend-web/
 ├── docs/
 ├── docker-compose.yml
@@ -117,6 +122,7 @@ microservice/
 | User Service | http://localhost:8082 |
 | Order Service | http://localhost:8083 |
 | Inventory Service | http://localhost:8084 |
+| News Service | http://localhost:8085 |
 | RabbitMQ Management | http://localhost:15672 |
 | MongoDB | localhost:27017 |
 | Redis | localhost:6379 |
@@ -132,6 +138,7 @@ microservice/
 /api/brands/**     -> product-service
 /api/orders/**     -> order-service
 /api/inventory/**  -> inventory-service
+/api/news/**       -> news-service
 ```
 
 ## Tài Khoản Demo

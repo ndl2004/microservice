@@ -157,6 +157,29 @@ services:
       retries: 10
       start_period: 60s
 
+  news-service:
+    build:
+      context: .
+      dockerfile: news-service/Dockerfile
+    container_name: news-service
+    restart: always
+    ports:
+      - "8085:8085"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://host.docker.internal:3307/news_db?createDatabaseIfNotExist=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/8085'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
   api-gateway:
     build:
       context: .
@@ -177,6 +200,8 @@ services:
       order-service:
         condition: service_healthy
       inventory-service:
+        condition: service_healthy
+      news-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/8080'"]
