@@ -117,7 +117,30 @@ const Products = () => {
     setSelectedProduct(null);
   };
 
-  const handleImageUpload = (event) => {
+  const resizeImageFile = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const image = new Image();
+        image.onload = () => {
+          const maxSize = 900;
+          const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.round(image.width * scale);
+          canvas.height = Math.round(image.height * scale);
+
+          const context = canvas.getContext('2d');
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.82));
+        };
+        image.onerror = reject;
+        image.src = reader.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const handleImageUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -126,18 +149,19 @@ const Products = () => {
       return;
     }
 
-    if (file.size > 1024 * 1024) {
-      toast.warn('Ảnh nên nhỏ hơn 1MB để lưu demo ổn định.');
+    if (file.size > 5 * 1024 * 1024) {
+      toast.warn('Ảnh nên nhỏ hơn 5MB để lưu demo ổn định.');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      setFormData((prev) => ({ ...prev, main_image: reader.result }));
+    try {
+      const imageData = await resizeImageFile(file);
+      setFormData((prev) => ({ ...prev, main_image: imageData }));
       setImageFileName(file.name);
-    };
-    reader.onerror = () => toast.error('Không thể đọc file ảnh.');
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Image resize error:', err);
+      toast.error('Không thể xử lý file ảnh.');
+    }
   };
 
   const buildProductPayload = () => ({
@@ -405,7 +429,7 @@ const Products = () => {
                     Chọn ảnh từ máy
                     <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
                   </label>
-                  <p style={fileHint}>{imageFileName || 'Chưa chọn ảnh mới. Nên dùng ảnh dưới 1MB.'}</p>
+                  <p style={fileHint}>{imageFileName || 'Chưa chọn ảnh mới. Ảnh sẽ được tự nén khi lưu.'}</p>
                 </div>
               </div>
 
