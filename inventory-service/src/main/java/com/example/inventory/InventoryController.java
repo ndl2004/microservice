@@ -39,6 +39,14 @@ public class InventoryController {
         return inventoryRepository.save(inventory);
     }
 
+    @DeleteMapping("/{productId}")
+    public void deleteInventory(@PathVariable Long productId) {
+        Inventory inventory = inventoryRepository.findByProductId(productId)
+                .orElseThrow(() -> new RuntimeException("Inventory not found"));
+
+        inventoryRepository.delete(inventory);
+    }
+
     @PostMapping("/decrease")
     public Inventory decreaseStock(@RequestBody OrderItemRequest request) {
 

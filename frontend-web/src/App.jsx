@@ -24,6 +24,8 @@ import AdminDashboard from './admin/Dashboard';
 import Orders from './admin/Orders';
 import Products from './admin/Products';
 import Users from './admin/Users';
+import Inventory from './admin/Inventory';
+import AdminNews from './admin/News';
 
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -84,7 +86,9 @@ function App() {
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="orders" element={<Orders />} />
             <Route path="products" element={<Products />} />
+            <Route path="inventory" element={<Inventory />} />
             <Route path="users" element={<Users />} />
+            <Route path="news" element={<AdminNews />} />
           </Route>
 
           <Route path="/" element={<UserPage><Home /></UserPage>} />
@@ -92,6 +96,7 @@ function App() {
           <Route path="/san-pham" element={<UserPage><AllProducts /></UserPage>} />
           <Route path="/cart" element={<UserPage><Cart /></UserPage>} />
           <Route path="/tin-tuc" element={<UserPage><NewsDetail /></UserPage>} />
+          <Route path="/tin-tuc/:id" element={<UserPage><NewsDetail /></UserPage>} />
           <Route path="/lien-he" element={<UserPage><Contact /></UserPage>} />
           <Route path="/payment-return" element={<PaymentReturn />} />
 
