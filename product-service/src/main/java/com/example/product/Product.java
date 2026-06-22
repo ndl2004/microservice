@@ -22,7 +22,8 @@ public class Product implements Serializable {
     private String description;
 
     @JsonProperty("main_image")
-    @Column(length = 1000)
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
     private String mainImage;
 
     @JsonProperty("category_id")
